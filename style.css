@@ -1,0 +1,73 @@
+body {
+  font-family: sans-serif;
+  background-color: #f8f8f8;
+  color: #333;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #444;
+}
+
+/* グラフ全体を囲むコンテナ */
+.ecg-sheet {
+  max-width: 1000px;
+  margin: 20px auto;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 各グラフの行のスタイル */
+.ecg-row {
+  display: flex; /* ラベルとグラフを横並びにする */
+  align-items: center; /* 上下中央揃え */
+  border-bottom: 1px solid #eee; /* 行間の区切り線 */
+  min-height: 80px; /* 各行の最小の高さ */
+}
+.ecg-row:last-child {
+  border-bottom: none;
+}
+
+/* 左側のラベルのスタイル */
+.ecg-label {
+  flex-basis: 60px; /* ラベルの幅を60pxに固定 */
+  flex-shrink: 0; /* 幅が縮まないようにする */
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.2em;
+  color: #d9534f; /* ラベルの文字色 */
+  border-right: 1px solid #eee; /* ラベルとグラフの間の区切り線 */
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* グラフ描画エリアのコンテナ */
+.chart-container {
+  flex-grow: 1; /* 残りの幅をすべて使う */
+  position: relative;
+  height: 80px; /* 高さを固定 */
+
+  /* --- 背景のグリッド描画 --- */
+  background-color: #fefdf5; /* 薄いクリーム色 */
+  /* 細かいグリッド (10px) */
+  background-image: linear-gradient(
+      rgba(255, 182, 193, 0.4) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 182, 193, 0.4) 1px, transparent 1px);
+  background-size: 10px 10px;
+
+  /* 太いグリッド (50px) */
+  background-image: linear-gradient(
+      rgba(255, 182, 193, 0.7) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 182, 193, 0.7) 1px, transparent 1px),
+    linear-gradient(rgba(255, 182, 193, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 182, 193, 0.4) 1px, transparent 1px);
+  background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
+}

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EChartsによる心電図風グラフ</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #f0f2f5;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      /* EChartsを描画するコンテナのサイズを定義 */
+      #main {
+        width: 90vw;
+        max-width: 1000px;
+        height: 900px; /* グラフの数に応じて高さを調整 */
+        border: 1px solid #ccc;
+        background-color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- EChartsを描画するためのDOM -->
+    <div id="main"></div>
+
+    <!-- EChartsライブラリを読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- グラフ描画用のJavaScriptファイルを読み込み -->
+    <script src="script.js"></script>
+  </body>
+</html>
