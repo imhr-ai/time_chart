@@ -4,4 +4,28 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "flask>=3.1.2",
+    "numpy>=2.3.2",
+    "polars>=1.32.3",
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D1", # docstringなし
+    "D400", # docstring 末尾のピリオド 
+    "D415", # docstring 句読点なし
+    "ERA001", # コードをコメントアウト
+    "BLE001", # try except Exception
+    "S201", # flask debug=True
+    "T201", # print
+    "RET504", # 不必要なreturn前の変数
+]
+unfixable = [
+    "F401", # unused import
+    "F841", # unused variable
+]
