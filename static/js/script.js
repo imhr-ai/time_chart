@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const errorAlert = document.getElementById("error-alert");
   const chartContainer = document.getElementById("chart-container");
 
-  // EChartsインスタンスを保持する変数
   let myChart = null;
 
   uploadButton.addEventListener("click", async () => {
@@ -15,17 +14,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // UIをリセット
     hideError();
     chartContainer.style.display = "none";
     loadingSpinner.classList.remove("d-none");
 
-    // FormDataオブジェクトを作成してファイルを格納
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      // バックエンドにファイルをPOST
       const response = await fetch("/upload", {
         method: "POST",
         body: formData,
@@ -40,20 +36,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const apiData = await response.json();
-
-      // グラフ描画関数を呼び出し
       renderChart(apiData);
     } catch (error) {
       showError(error.message);
     } finally {
-      // ローディングスピナーを非表示
       loadingSpinner.classList.add("d-none");
     }
   });
 
   /**
    * EChartsでグラフを描画する関数
-   * @param {{channels: string[], data: {[key: string]: number[]}}} apiData
+   * @param {{
+   *   channels: string[],
+   *   data: {[key: string]: (number|string)[]},
+   *   markAreaData: {name: string, color: string, range: [number, number]}[]
+   * }} apiData
    */
   function renderChart(apiData) {
     chartContainer.style.display = "block";
@@ -64,8 +61,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const channels = apiData.channels;
     const seriesData = apiData.data;
+    const markAreaData = apiData.markAreaData;
+
+    // --- ▼▼▼ ここからが注釈削除の変更点 ▼▼▼ ---
+
+    // 背景色用のmarkAreaデータをEChartsのフォーマットに変換
+    const markAreas = markAreaData.map((area) => {
+      return [
+        // 開始点
+        {
+          // 'name' プロパティを削除することで、"step1"等のラベルが非表示になる
+          xAxis: area.range[0],
+          itemStyle: {
+            color: area.color,
+          },
+        },
+        // 終了点
+        {
+          xAxis: area.range[1],
+        },
+      ];
+    });
+
+    // --- ▲▲▲ 注釈削除の変更点はここまで ▲▲▲ ---
+
     const totalChannels = channels.length;
-    const containerHeightRatio = 95; // コンテナの高さの95%をグラフ描画領域として使用
+    const containerHeightRatio = 95;
 
     const option = {
       tooltip: {
@@ -74,13 +95,17 @@ document.addEventListener("DOMContentLoaded", () => {
       grid: channels.map((_, index) => ({
         top: `${(index / totalChannels) * containerHeightRatio + 0.5}%`,
         height: `${containerHeightRatio / totalChannels}%`,
-        // ★ 変更点: 横向きラベルのためのスペースを確保
-        left: "100px", // 以前は '120px' や '10%' だったかもしれません
+        left: "100px",
         right: "30px",
       })),
       xAxis: channels.map((_, index) => ({
         gridIndex: index,
         type: "category",
+        // x軸のデータポイント数が多いので、Time列を使うよりインデックスが安定
+        data: Array.from(
+          { length: seriesData[channels[0]].length },
+          (_, i) => i
+        ),
         show: index === totalChannels - 1,
         axisLabel: {
           show: index === totalChannels - 1,
@@ -91,23 +116,16 @@ document.addEventListener("DOMContentLoaded", () => {
         type: "value",
         name: channel,
         nameLocation: "middle",
-        // ★ 変更点: ラベルとグラフの間の距離を調整
         nameGap: 30,
         nameRotate: 0,
-
-        // ★★★ ここが今回の修正の核心部分です ★★★
         nameTextStyle: {
-          // 2. テキストを右揃えにする (見た目が綺麗になる)
           align: "right",
           fontWeight: "bold",
           fontSize: 12,
           color: "#d9534f",
-          // テキストがコンテナからはみ出した場合の処理
           overflow: "truncate",
-          width: 60, // テキストの最大幅を指定
+          width: 60,
         },
-        // ★★★★★★★★★★★★★★★★★★★★★★★★
-
         min: -4,
         max: 4,
         axisLine: { show: false },
@@ -126,9 +144,14 @@ document.addEventListener("DOMContentLoaded", () => {
         yAxisIndex: index,
         showSymbol: false,
         lineStyle: { width: 1, color: "#333" },
+        sampling: "lttb",
 
-        // ★★★ 重要変更点: サンプリングを有効にする ★★★
-        sampling: "lttb", // Largest-Triangle-Three-Bucketsアルゴリズムを使用
+        // --- ▼▼▼ ここが今回の機能の核心部 ▼▼▼ ---
+        markArea: {
+          silent: true, // markArea上でマウスイベントを無効化
+          data: markAreas,
+        },
+        // --- ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ ---
       })),
       dataZoom: [
         {
@@ -142,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ],
     };
 
-    myChart.setOption(option);
+    myChart.setOption(option, { notMerge: true });
   }
 
   function showError(message) {
@@ -154,7 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
     errorAlert.classList.add("d-none");
   }
 
-  // ウィンドウリサイズ時にチャートもリサイズ
   window.addEventListener("resize", () => {
     if (myChart) {
       myChart.resize();
