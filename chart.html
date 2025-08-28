@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ECharts Background Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    #main {
+      width: 800px;
+      height: 400px;
+    }
+  </style>
+</head>
+<body>
+  <div id="main"></div>
+  <script>
+    var chartDom = document.getElementById('main');
+    var myChart = echarts.init(chartDom);
+
+    var option = {
+      title: {
+        text: '背景色を時間帯で切り替え'
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      xAxis: {
+        type: 'time'
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: [{
+        type: 'line',
+        data: [
+          ['2025-08-28 00:30:00', 50],
+          ['2025-08-28 03:00:00', 80],
+          ['2025-08-28 05:30:00', 60],
+          ['2025-08-28 07:00:00', 120],
+          ['2025-08-28 10:00:00', 90],
+          ['2025-08-28 15:00:00', 160],
+          ['2025-08-28 20:00:00', 130]
+        ],
+        markArea: {
+          silent: true,
+          data: [
+            // 0:00 ~ 6:00 を青
+            [
+              { xAxis: '2025-08-28 00:00:00', itemStyle: { color: 'rgba(0,0,255,0.15)' } },
+              { xAxis: '2025-08-28 06:00:00' }
+            ],
+            // 6:00以降を緑
+            [
+              { xAxis: '2025-08-28 06:00:00', itemStyle: { color: 'rgba(0,255,0,0.15)' } },
+              { xAxis: '2025-08-28 23:59:59' }
+            ]
+          ]
+        }
+      }]
+    };
+
+    myChart.setOption(option);
+  </script>
+</body>
+</html>
