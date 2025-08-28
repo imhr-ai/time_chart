@@ -1,4 +1,5 @@
 import time
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import polars as pl
@@ -57,6 +58,43 @@ def generate_ecg_data() -> pl.DataFrame:
 
     # 辞書からPolars DataFrameを作成
     df = pl.DataFrame(data_dict)
+
+    # 開始時刻を設定 (任意の日時でOK)
+    start_datetime = datetime(2025, 1, 1, 0, 0, 0, tzinfo=UTC)
+    # 終了時刻を計算 ((NUM_ROWS - 1) 秒後)
+    end_datetime = start_datetime + timedelta(seconds=NUM_ROWS - 1)
+
+    # 1秒間隔の時系列データを生成 (end を明示的に指定)
+    time_series = pl.datetime_range(
+        start=start_datetime,
+        end=end_datetime,
+        interval="1s",
+        eager=True,
+    )
+
+    # DataFrameに 'Time' 列として追加
+    df = df.with_columns(pl.Series("Time", time_series))
+
+    # 'Time' 列を一番左に移動
+    cols = df.columns
+    df = df.select(cols[-1], *cols[:-1])
+    # --- ここまでが追加したコード ---
+
+    # 300行ごとに変わる 'step' 列を追加
+    df = df.with_columns(
+        (pl.lit("step") + ((pl.arange(0, pl.count()) // 300) + 1).cast(pl.Utf8)).alias(
+            "step",
+        ),
+    )
+
+    # 'step' 列を 'Time' 列の右隣に移動させて見やすくする
+    cols = df.columns
+    # 現在の列の並び: ['Time', 'CH_1', ..., 'CH_150', 'step']
+    # 新しい並び: ['Time', 'step', 'CH_1', ..., 'CH_150']
+    df = df.select(
+        ["Time", "step"] + [col for col in cols if col not in ["Time", "step"]],
+    )
+
     return df
 
 

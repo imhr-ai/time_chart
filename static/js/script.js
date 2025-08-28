@@ -70,13 +70,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const option = {
       tooltip: {
         trigger: "axis",
-        position: function (pt) {
-          return [pt[0], "10%"];
-        },
       },
       grid: channels.map((_, index) => ({
-        top: `${(index / totalChannels) * containerHeightRatio + 3}%`,
-        height: `${(containerHeightRatio / totalChannels) * 0.8}%`,
+        top: `${(index / totalChannels) * containerHeightRatio + 0.5}%`,
+        height: `${containerHeightRatio / totalChannels}%`,
         // ★ 変更点: 横向きラベルのためのスペースを確保
         left: "100px", // 以前は '120px' や '10%' だったかもしれません
         right: "30px",
@@ -95,12 +92,11 @@ document.addEventListener("DOMContentLoaded", () => {
         name: channel,
         nameLocation: "middle",
         // ★ 変更点: ラベルとグラフの間の距離を調整
-        nameGap: 80,
+        nameGap: 30,
+        nameRotate: 0,
 
         // ★★★ ここが今回の修正の核心部分です ★★★
         nameTextStyle: {
-          // 1. テキストを回転させない (強制的に横向きにする)
-          rotate: 0,
           // 2. テキストを右揃えにする (見た目が綺麗になる)
           align: "right",
           fontWeight: "bold",
