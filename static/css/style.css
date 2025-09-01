@@ -1,0 +1,26 @@
+.mark-area-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.mark-area-color-box {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ccc;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.mark-area-item label {
+  margin-bottom: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+}
+
+.mark-area-item input[type="checkbox"] {
+  margin-right: 5px;
+  cursor: pointer;
+}

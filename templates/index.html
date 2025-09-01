@@ -9,6 +9,11 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <!-- Custom CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
     <style>
       body {
         background-color: #f8f9fa;
@@ -19,6 +24,22 @@
         height: 4500px;
         border: 1px solid #dee2e6;
         background-color: white;
+      }
+      .control-panel {
+        max-height: 400px; /* スクロール可能な高さを設定 */
+        overflow-y: auto; /* 縦スクロールを有効にする */
+        padding-right: 15px; /* スクロールバーとの間にスペースを確保 */
+      }
+      /* スクロールバーのスタイル調整 (任意) */
+      .control-panel::-webkit-scrollbar {
+        width: 8px;
+      }
+      .control-panel::-webkit-scrollbar-thumb {
+        background-color: #ced4da;
+        border-radius: 4px;
+      }
+      .control-panel::-webkit-scrollbar-track {
+        background-color: #f1f1f1;
       }
     </style>
   </head>
@@ -61,8 +82,32 @@
         role="alert"
       ></div>
 
-      <!-- EChartsを描画するコンテナ -->
-      <div id="chart-container" class="mt-4" style="display: none"></div>
+      <!-- コントロールパネルとグラフコンテナ -->
+      <div class="row mt-4">
+        <div class="col-md-3">
+          <div id="controls-panel-group" style="display: none">
+            <!-- MarkAreaコントロール -->
+            <div class="card mb-3" id="mark-area-card">
+              <div class="card-header">MarkArea 表示/非表示</div>
+              <div class="card-body control-panel" id="mark-area-controls">
+                <!-- MarkAreaのチェックボックスがここに動的に挿入されます -->
+              </div>
+            </div>
+
+            <!-- チャンネルコントロール -->
+            <div class="card" id="channel-card">
+              <div class="card-header">チャンネル 表示/非表示</div>
+              <div class="card-body control-panel" id="channel-controls">
+                <!-- チャンネルのチェックボックスがここに動的に挿入されます -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9">
+          <!-- EChartsを描画するコンテナ -->
+          <div id="chart-container" style="display: none"></div>
+        </div>
+      </div>
     </div>
 
     <!-- EChartsライブラリ -->

@@ -81,12 +81,22 @@ def upload_csv() -> (
                     },
                 )
 
-        plot_channels = df.select(cs.starts_with("CH_")).columns
-        data_dict = df.to_dict(as_series=False)
+        # --- ▼▼▼ 変更点: "Time"カラムも選択してフロントエンドに渡す ▼▼▼ ---
+        plot_columns = ["Time"] if "Time" in df.columns else []
+        plot_columns.extend(df.select(cs.starts_with("CH_")).columns)
+
+        # plot_columnsから重複を除去（もし"Time"が"CH_"で始まるカラムに含まれる場合のため）
+        plot_columns = list(dict.fromkeys(plot_columns))
+
+        df_selected = df.select(plot_columns)
+        data_dict = df_selected.to_dict(as_series=False)
+        # --- ▲▲▲ 変更点ここまで ▲▲▲ ---
 
         response_data = {
-            "channels": plot_channels,
-            "data": data_dict,
+            "channels": df.select(
+                cs.starts_with("CH_")
+            ).columns,  # channelsはCH_のみを渡す
+            "data": data_dict,  # Timeカラムを含んだ全データを渡す
             "markAreaData": mark_area_data,
         }
 
