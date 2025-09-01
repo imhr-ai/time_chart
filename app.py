@@ -75,7 +75,7 @@ def upload_csv() -> (
                 step_name = row["step"]
                 mark_area_data.append(
                     {
-                        "name": step_name,  # nameはJavaScript側で使わないが、念のため残す
+                        "name": step_name,  # nameはJS側で使わないが、念のため残す
                         "color": step_colors.get(step_name, default_color),
                         "range": [row["start"], row["end"]],
                     },
