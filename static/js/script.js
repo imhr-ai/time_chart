@@ -233,22 +233,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- markAreaデータを再構築し、新しいX軸インデックスにマッピング ---
     const filteredMarkAreas = [];
+    // マッピング用のヘルパー関数
+    const originalIndexToFilteredIndex = new Map();
+    sortedVisibleIndices.forEach((originalIdx, filteredIdx) => {
+      originalIndexToFilteredIndex.set(originalIdx, filteredIdx);
+    });
+
     originalMarkAreaData.forEach((area, index) => {
       if (markAreaVisibility.get(`mark_area_${index}`)) {
-        let newStart = -1;
-        let newEnd = -1;
+        const newStart = originalIndexToFilteredIndex.get(area.range[0]);
+        const newEnd = originalIndexToFilteredIndex.get(area.range[1]);
 
-        for (let i = 0; i < sortedVisibleIndices.length; i++) {
-          if (sortedVisibleIndices[i] === area.range[0]) {
-            newStart = i;
-          }
-          if (sortedVisibleIndices[i] === area.range[1]) {
-            newEnd = i;
-          }
-        }
-        if (newStart !== -1 && newEnd !== -1) {
+        if (newStart !== undefined && newEnd !== undefined) {
           filteredMarkAreas.push([
-            { xAxis: newStart, itemStyle: { color: area.color } },
+            {
+              xAxis: newStart,
+              itemStyle: { color: area.color },
+              name: area.name,
+              label: {
+                show: false,
+              },
+            }, // markAreaの名前をnameプロパティで追加
             { xAxis: newEnd },
           ]);
         }
@@ -278,10 +283,48 @@ document.addEventListener("DOMContentLoaded", () => {
     const newOption = {
       tooltip: {
         trigger: "axis",
+        formatter: function (params) {
+          let tooltipContent = "";
+          // タイムスタンプ（X軸の値）
+          const timeValue = params[0].axisValue;
+          tooltipContent += `Time: <b>${timeValue}</b><br/>`;
+
+          // MarkAreaの名前を追加
+          // 現在のデータポイントに対応するmarkAreaを検索
+          // EChartsのparamsにはmarkAreaの情報が直接含まれないため、手動で検索する
+          const currentXIndex = params[0].dataIndex; // 現在のX軸インデックス
+
+          const relevantMarkArea = originalMarkAreaData.find((area, index) => {
+            if (!markAreaVisibility.get(`mark_area_${index}`)) return false; // 非表示のmarkAreaは除外
+            const originalStart = area.range[0];
+            const originalEnd = area.range[1];
+
+            const filteredStart =
+              originalIndexToFilteredIndex.get(originalStart);
+            const filteredEnd = originalIndexToFilteredIndex.get(originalEnd);
+
+            return (
+              currentXIndex >= filteredStart && currentXIndex <= filteredEnd
+            );
+          });
+
+          if (relevantMarkArea) {
+            tooltipContent += `MarkArea: <span style="font-weight: bold; color:${relevantMarkArea.color.replace(
+              /, 0\.\d+\)/,
+              ", 1)"
+            )}">${relevantMarkArea.name}</span><br/>`;
+          }
+
+          params.forEach(function (item) {
+            tooltipContent += `${item.marker} ${item.seriesName}: <b>${item.value}</b><br/>`;
+          });
+
+          return tooltipContent;
+        },
       },
       grid: visibleChannels.map((_, index) => ({
         top: `${(index / totalVisibleChannels) * containerHeightRatio + 0.5}%`,
-        height: `${containerHeightRatio / totalVisibleChannels}%`,
+        height: "30px",
         left: "100px",
         right: "30px",
       })),
@@ -297,6 +340,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return value;
           },
         },
+        axisLine: { show: false },
+        axisTick: { show: false },
       })),
       yAxis: visibleChannels.map((channel, index) => ({
         gridIndex: index,
@@ -341,14 +386,6 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           type: "slider",
           xAxisIndex: Array.from({ length: totalVisibleChannels }, (_, i) => i),
-          // start: 0,
-          // end: Math.min(
-          //   100,
-          //   filteredTimeData.length > 0
-          //     ? (100 * 10) / filteredTimeData.length
-          //     : 100
-          // ),
-          // スライダーの初期範囲を調整
           bottom: "1%",
           height: 20,
         },
@@ -360,7 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // グラフコンテナの高さを動的に調整
-    chartContainer.style.height = `${totalVisibleChannels * 30}px`; // 各チャンネルに30px割り当て
+    chartContainer.style.height = `${totalVisibleChannels * 30 + 100}px`; // 各チャンネルに30px割り当て
 
     myChart.setOption(newOption, { notMerge: true });
     myChart.resize();
