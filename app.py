@@ -12,6 +12,16 @@ def index() -> str:
     return render_template("index.html")
 
 
+# --- ▼▼▼ ここからが追加点 ▼▼▼ ---
+@app.route("/graph")
+def graph_page() -> str:
+    """別タブでグラフを表示するためのページ"""
+    return render_template("graph.html")
+
+
+# --- ▲▲▲ 追加点はここまで ▲▲▲ ---
+
+
 @app.route("/upload", methods=["POST"])
 def upload_csv() -> (
     tuple[Response, Literal[400]] | Response | tuple[Response, Literal[500]]
