@@ -57,7 +57,29 @@
           <div id="controls-panel-group" style="display: none">
             <!-- MarkAreaコントロール -->
             <div class="card mb-3" id="mark-area-card">
-              <div class="card-header">MarkArea 表示/非表示</div>
+              <div
+                class="card-header d-flex justify-content-between align-items-center"
+              >
+                <span>コマンド</span>
+                <div
+                  class="btn-group"
+                  role="group"
+                  aria-label="MarkArea 全選択全解除"
+                >
+                  <button
+                    class="btn btn-sm btn-outline-primary"
+                    id="select-all-markareas"
+                  >
+                    全選択
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    id="deselect-all-markareas"
+                  >
+                    全解除
+                  </button>
+                </div>
+              </div>
               <div class="card-body control-panel" id="mark-area-controls">
                 <!-- MarkAreaのチェックボックスがここに動的に挿入されます -->
               </div>
@@ -65,7 +87,29 @@
 
             <!-- チャンネルコントロール -->
             <div class="card" id="channel-card">
-              <div class="card-header">チャンネル 表示/非表示</div>
+              <div
+                class="card-header d-flex justify-content-between align-items-center"
+              >
+                <span>ステータス</span>
+                <div
+                  class="btn-group"
+                  role="group"
+                  aria-label="MarkArea 全選択全解除"
+                >
+                  <button
+                    class="btn btn-sm btn-outline-primary me-1"
+                    id="select-all-channels"
+                  >
+                    全選択
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    id="deselect-all-channels"
+                  >
+                    全解除
+                  </button>
+                </div>
+              </div>
               <div class="card-body control-panel" id="channel-controls">
                 <!-- チャンネルのチェックボックスがここに動的に挿入されます -->
               </div>

@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
           id="checkbox-${markAreaId}"
           ${markAreaVisibility.get(markAreaId) ? "checked" : ""}
         >
-        <label class="form-check-label" for="checkbox-${markAreaId}">
+        <label class="form-check-label" for="checkbox-${markAreaId}"> 
           <span class="mark-area-color-box" style="background-color: ${area.color.replace(
             /, 0\.\d+\)/,
             ", 1)"
@@ -130,13 +130,34 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
       markAreaControls.appendChild(div);
 
-      div
-        .querySelector("input[type='checkbox']")
-        .addEventListener("change", (event) => {
-          markAreaVisibility.set(markAreaId, event.target.checked);
-          updateChart(); // グラフ全体を更新
-        });
+      const checkbox = div.querySelector("input[type='checkbox']");
+      checkbox.addEventListener("change", (event) => {
+        markAreaVisibility.set(markAreaId, event.target.checked);
+        updateChart();
+        event.target.blur(); // ← フォーカスを外す
+      });
     });
+
+    // 全選択 / 全解除 ボタンのイベント
+    document.getElementById("select-all-markareas").onclick = () => {
+      markAreaData.forEach((_, index) =>
+        markAreaVisibility.set(`mark_area_${index}`, true)
+      );
+      updateChart();
+      markAreaControls
+        .querySelectorAll("input[type='checkbox']")
+        .forEach((cb) => (cb.checked = true));
+    };
+
+    document.getElementById("deselect-all-markareas").onclick = () => {
+      markAreaData.forEach((_, index) =>
+        markAreaVisibility.set(`mark_area_${index}`, false)
+      );
+      updateChart();
+      markAreaControls
+        .querySelectorAll("input[type='checkbox']")
+        .forEach((cb) => (cb.checked = false));
+    };
   }
 
   /**
@@ -159,19 +180,36 @@ document.addEventListener("DOMContentLoaded", () => {
           ${channelVisibility.get(channel) ? "checked" : ""}
         >
         <label class="form-check-label" for="checkbox-${channel}">
-          <span class="mark-area-color-box" style="background-color: #333;"></span> <!-- チャンネル共通の色 -->
+          <span class="mark-area-color-box" style="background-color: #333;"></span>
           ${channel}
         </label>
       `;
       channelControls.appendChild(div);
 
-      div
-        .querySelector("input[type='checkbox']")
-        .addEventListener("change", (event) => {
-          channelVisibility.set(channel, event.target.checked);
-          updateChart(); // グラフ全体を更新
-        });
+      const checkbox = div.querySelector("input[type='checkbox']");
+      checkbox.addEventListener("change", (event) => {
+        channelVisibility.set(channel, event.target.checked);
+        updateChart(); // グラフ全体を更新
+        event.target.blur(); // ← フォーカスを外す
+      });
     });
+
+    // 全選択 / 全解除 ボタンのイベント
+    document.getElementById("select-all-channels").onclick = () => {
+      channels.forEach((ch) => channelVisibility.set(ch, true));
+      updateChart();
+      channelControls
+        .querySelectorAll("input[type='checkbox']")
+        .forEach((cb) => (cb.checked = true));
+    };
+
+    document.getElementById("deselect-all-channels").onclick = () => {
+      channels.forEach((ch) => channelVisibility.set(ch, false));
+      updateChart();
+      channelControls
+        .querySelectorAll("input[type='checkbox']")
+        .forEach((cb) => (cb.checked = false));
+    };
   }
 
   /**
