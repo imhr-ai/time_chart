@@ -1,3 +1,29 @@
+body {
+  background-color: #f8f9fa;
+}
+#chart-container {
+  width: 100%;
+  /* 各チャンネルに30pxを割り当てる想定 (150 * 30px = 4500px) */
+  height: 4500px;
+  border: 1px solid #dee2e6;
+  background-color: white;
+}
+.control-panel {
+  max-height: 400px; /* スクロール可能な高さを設定 */
+  overflow-y: auto; /* 縦スクロールを有効にする */
+  padding-right: 15px; /* スクロールバーとの間にスペースを確保 */
+}
+/* スクロールバーのスタイル調整 (任意) */
+.control-panel::-webkit-scrollbar {
+  width: 8px;
+}
+.control-panel::-webkit-scrollbar-thumb {
+  background-color: #ced4da;
+  border-radius: 4px;
+}
+.control-panel::-webkit-scrollbar-track {
+  background-color: #f1f1f1;
+}
 .mark-area-item {
   display: flex;
   align-items: center;

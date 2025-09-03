@@ -352,6 +352,10 @@ document.addEventListener("DOMContentLoaded", () => {
           bottom: "1%",
           height: 20,
         },
+        {
+          type: "inside",
+          xAxisIndex: Array.from({ length: totalVisibleChannels }, (_, i) => i),
+        },
       ],
     };
 
@@ -359,6 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chartContainer.style.height = `${totalVisibleChannels * 30}px`; // 各チャンネルに30px割り当て
 
     myChart.setOption(newOption, { notMerge: true });
+    myChart.resize();
   }
 
   function showError(message) {
