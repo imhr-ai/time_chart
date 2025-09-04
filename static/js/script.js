@@ -371,7 +371,7 @@ document.addEventListener("DOMContentLoaded", () => {
       grid: visibleChannels.map((_, index) => ({
         top: `${(index / totalVisibleChannels) * containerHeightRatio + 0.5}%`,
         height: "30px",
-        left: "100px",
+        left: "310px",
         right: "30px",
       })),
       xAxis: visibleChannels.map((_, index) => ({
@@ -403,8 +403,8 @@ document.addEventListener("DOMContentLoaded", () => {
           overflow: "truncate",
           width: 60,
         },
-        min: -4,
-        max: 4,
+        min: -2,
+        max: 2,
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: { show: false },
@@ -440,7 +440,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       ],
     };
-    chartContainer.style.height = `${totalVisibleChannels * 30 + 100}px`;
+    chartContainer.style.height = `${totalVisibleChannels * 32 + 100}px`;
     myChart.setOption(newOption, { notMerge: true });
     myChart.resize();
   }
