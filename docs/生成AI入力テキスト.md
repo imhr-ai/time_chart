@@ -3,12 +3,12 @@
 ## タスク
 
 Web アプリを作成しました
-以下の内容を追加して、コードの修正した点を提示して
+以下の内容を追加して、コードの修正して
 
 ## 追加内容
 
-チャンネルを選択している状態でグラフを作成ボタンを押すと、別タブが開き x 軸が時間 y 軸が選択されたチャンネルのグラフを作成したい
-チャンネルが複数選択されている場合、グラフは重ねて表示したい
+graph.html で表示している x 軸は時間であるが、
+ドロップダウンで選択することで、今描画してるデータから x 軸を変更できるようにしてほしい
 
 ## 技術仕様
 
@@ -50,6 +50,16 @@ def index() -> str:
     return render_template("index.html")
 
 
+# --- ▼▼▼ ここからが追加点 ▼▼▼ ---
+@app.route("/graph")
+def graph_page() -> str:
+    """別タブでグラフを表示するためのページ"""
+    return render_template("graph.html")
+
+
+# --- ▲▲▲ 追加点はここまで ▲▲▲ ---
+
+
 @app.route("/upload", methods=["POST"])
 def upload_csv() -> (
     tuple[Response, Literal[400]] | Response | tuple[Response, Literal[500]]
@@ -74,6 +84,7 @@ def upload_csv() -> (
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 ```
 
 process_df.py
@@ -161,6 +172,7 @@ def process_df(csv_data: bytes) -> dict[str, list[str] | dict[str, list[Any]]]:
     }
 
     return response_data
+
 ```
 
 temlates/index.html
@@ -265,7 +277,7 @@ temlates/index.html
                   aria-label="MarkArea 全選択全解除"
                 >
                   <button
-                    class="btn btn-sm btn-outline-primary me-1"
+                    class="btn btn-sm btn-outline-primary"
                     id="select-all-channels"
                   >
                     全選択
@@ -281,6 +293,17 @@ temlates/index.html
               <div class="card-body control-panel" id="channel-controls">
                 <!-- チャンネルのチェックボックスがここに動的に挿入されます -->
               </div>
+              <!-- --- ▼▼▼ ここからが追加点 ▼▼▼ --- -->
+              <div class="card-footer text-center">
+                <button
+                  class="btn btn-success"
+                  id="create-graph-button"
+                  disabled
+                >
+                  選択したチャンネルでグラフを作成
+                </button>
+              </div>
+              <!-- --- ▲▲▲ 追加点はここまで ▲▲▲ --- -->
             </div>
           </div>
         </div>
@@ -295,6 +318,52 @@ temlates/index.html
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <!-- カスタムJavaScript -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  </body>
+</html>
+```
+
+templates/graph.html
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>選択チャンネルのグラフ</title>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* グラフコンテナのスタイル */
+      #chart-container {
+        width: 100%;
+        height: 90vh; /* ビューポートの高さの90% */
+        min-height: 500px;
+        border: 1px solid #dee2e6;
+        background-color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid mt-4">
+      <div class="card">
+        <div class="card-header">
+          <h3>選択チャンネルのグラフ</h3>
+        </div>
+        <div class="card-body">
+          <!-- EChartsを描画するコンテナ -->
+          <div id="chart-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EChartsライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- このページ専用のJavaScript -->
+    <script src="{{ url_for('static', filename='js/graph.js') }}"></script>
   </body>
 </html>
 ```
@@ -370,6 +439,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const markAreaControls = document.getElementById("mark-area-controls");
   const channelCard = document.getElementById("channel-card");
   const channelControls = document.getElementById("channel-controls");
+  // --- ▼▼▼ ここからが追加点 ▼▼▼ ---
+  const createGraphButton = document.getElementById("create-graph-button");
+  // --- ▲▲▲ 追加点はここまで ▲▲▲ ---
 
   let myChart = null;
   let originalChannels = []; // オリジナルのCH_チャンネル名を保持
@@ -388,10 +460,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     hideError();
     chartContainer.style.display = "none";
-    controlsPanelGroup.style.display = "none"; // アップロード時は非表示
+    controlsPanelGroup.style.display = "none";
     loadingSpinner.classList.remove("d-none");
-    markAreaControls.innerHTML = ""; // 既存のチェックボックスをクリア
-    channelControls.innerHTML = ""; // 既存のチェックボックスをクリア
+    markAreaControls.innerHTML = "";
+    channelControls.innerHTML = "";
+    createGraphButton.disabled = true; // ボタンを無効化
 
     const formData = new FormData();
     formData.append("file", file);
@@ -419,55 +492,94 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // --- ▼▼▼ ここからが追加点 ▼▼▼ ---
+  /**
+   * 「グラフを作成」ボタンの有効/無効を切り替える関数
+   */
+  function toggleCreateGraphButton() {
+    const selectedChannels = Array.from(channelVisibility.values()).filter(
+      (v) => v
+    ).length;
+    createGraphButton.disabled = selectedChannels === 0;
+  }
+
+  // 「グラフを作成」ボタンのクリックイベント
+  createGraphButton.addEventListener("click", () => {
+    const selectedChannels = originalChannels.filter((channel) =>
+      channelVisibility.get(channel)
+    );
+
+    if (selectedChannels.length === 0) {
+      alert("グラフを作成するチャンネルを1つ以上選択してください。");
+      return;
+    }
+
+    // グラフ作成に必要なデータを準備
+    const graphData = {
+      time: fullOriginalData["Time"] || [],
+      series: [],
+    };
+
+    selectedChannels.forEach((channel) => {
+      graphData.series.push({
+        name: channel,
+        data: fullOriginalData[channel] || [],
+      });
+    });
+
+    // sessionStorageにデータを保存して新しいタブを開く
+    // データが大きい場合、localStorageやsessionStorageには限界があるため注意
+    try {
+      sessionStorage.setItem("graphDataForNewTab", JSON.stringify(graphData));
+      window.open("/graph", "_blank");
+    } catch (e) {
+      console.error("Failed to save data to sessionStorage:", e);
+      showError(
+        "グラフ用データを一時保存できませんでした。データが大きすぎる可能性があります。"
+      );
+    }
+  });
+  // --- ▲▲▲ 追加点はここまで ▲▲▲ ---
+
   /**
    * EChartsでグラフを描画する関数
    * @param {{
-   *   channels: string[], // CH_で始まるカラム名のみ
-   *   data: {[key: string]: (number|string)[]}, // Timeカラムを含む全データ
+   *   channels: string[],
+   *   data: {[key: string]: (number|string)[]},
    *   markAreaData: {name: string, color: string, range: [number, number]}[]
    * }} apiData
    */
   function renderChart(apiData) {
     chartContainer.style.display = "block";
-    controlsPanelGroup.style.display = "block"; // グラフ表示時にコントロールも表示
+    controlsPanelGroup.style.display = "block";
 
     if (myChart) {
       myChart.dispose();
     }
     myChart = echarts.init(chartContainer);
 
-    originalChannels = apiData.channels; // CH_チャンネル名を保存
-    fullOriginalData = apiData.data; // Timeカラムを含む全データを保存
-    originalMarkAreaData = apiData.markAreaData; // オリジナルmarkAreaデータを保存
+    originalChannels = apiData.channels;
+    fullOriginalData = apiData.data;
+    originalMarkAreaData = apiData.markAreaData;
 
-    // markAreaのIDと初期表示状態を管理
-    markAreaVisibility.clear(); // 新しいデータなのでクリア
-    originalMarkAreaData.forEach((area, index) => {
-      markAreaVisibility.set(`mark_area_${index}`, true); // デフォルトで表示
+    markAreaVisibility.clear();
+    originalMarkAreaData.forEach((_, index) => {
+      markAreaVisibility.set(`mark_area_${index}`, true);
     });
 
-    // チャンネルのIDと初期表示状態を管理
-    channelVisibility.clear(); // 新しいデータなのでクリア
+    channelVisibility.clear();
     originalChannels.forEach((channel) => {
-      channelVisibility.set(channel, true); // デフォルトで表示
+      channelVisibility.set(channel, true);
     });
 
-    // MarkAreaコントロールを生成
     generateMarkAreaControls(originalMarkAreaData, markAreaVisibility);
-    // チャンネルコントロールを生成
     generateChannelControls(originalChannels, channelVisibility);
-
-    // 初期表示に合わせてグラフデータとmarkAreaを更新
     updateChart();
+    toggleCreateGraphButton(); // --- ◀◀◀ 変更点: ボタンの状態を初期化
   }
 
-  /**
-   * MarkAreaの表示/非表示を切り替えるコントロールを生成する関数
-   * @param {{name: string, color: string, range: [number, number]}[]} markAreaData
-   * @param {Map<string, boolean>} markAreaVisibility
-   */
   function generateMarkAreaControls(markAreaData, markAreaVisibility) {
-    markAreaControls.innerHTML = ""; // 既存のコントロールをクリア
+    markAreaControls.innerHTML = "";
 
     markAreaData.forEach((area, index) => {
       const markAreaId = `mark_area_${index}`;
@@ -495,11 +607,10 @@ document.addEventListener("DOMContentLoaded", () => {
       checkbox.addEventListener("change", (event) => {
         markAreaVisibility.set(markAreaId, event.target.checked);
         updateChart();
-        event.target.blur(); // ← フォーカスを外す
+        event.target.blur();
       });
     });
 
-    // 全選択 / 全解除 ボタンのイベント
     document.getElementById("select-all-markareas").onclick = () => {
       markAreaData.forEach((_, index) =>
         markAreaVisibility.set(`mark_area_${index}`, true)
@@ -521,17 +632,12 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  /**
-   * チャンネルの表示/非表示を切り替えるコントロールを生成する関数
-   * @param {string[]} channels
-   * @param {Map<string, boolean>} channelVisibility
-   */
   function generateChannelControls(channels, channelVisibility) {
-    channelControls.innerHTML = ""; // 既存のコントロールをクリア
+    channelControls.innerHTML = "";
 
     channels.forEach((channel) => {
       const div = document.createElement("div");
-      div.className = "form-check mark-area-item"; // スタイルを流用
+      div.className = "form-check mark-area-item";
       div.innerHTML = `
         <input
           class="form-check-input"
@@ -550,18 +656,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const checkbox = div.querySelector("input[type='checkbox']");
       checkbox.addEventListener("change", (event) => {
         channelVisibility.set(channel, event.target.checked);
-        updateChart(); // グラフ全体を更新
-        event.target.blur(); // ← フォーカスを外す
+        updateChart();
+        toggleCreateGraphButton(); // --- ◀◀◀ 変更点: ボタンの状態を更新
+        event.target.blur();
       });
     });
 
-    // 全選択 / 全解除 ボタンのイベント
     document.getElementById("select-all-channels").onclick = () => {
       channels.forEach((ch) => channelVisibility.set(ch, true));
       updateChart();
       channelControls
         .querySelectorAll("input[type='checkbox']")
         .forEach((cb) => (cb.checked = true));
+      toggleCreateGraphButton(); // --- ◀◀◀ 変更点: ボタンの状態を更新
     };
 
     document.getElementById("deselect-all-channels").onclick = () => {
@@ -570,13 +677,12 @@ document.addEventListener("DOMContentLoaded", () => {
       channelControls
         .querySelectorAll("input[type='checkbox']")
         .forEach((cb) => (cb.checked = false));
+      toggleCreateGraphButton(); // --- ◀◀◀ 変更点: ボタンの状態を更新
     };
   }
 
-  /**
-   * markAreaとチャンネルの表示/非表示状態に基づいてグラフ全体を更新する関数
-   */
   function updateChart() {
+    // (この関数の中身は変更ありません)
     if (
       !myChart ||
       !originalChannels ||
@@ -584,16 +690,12 @@ document.addEventListener("DOMContentLoaded", () => {
       !originalMarkAreaData
     )
       return;
-
-    // --- 表示するデータポイントのインデックスを決定 ---
     const dataLength = fullOriginalData[originalChannels[0]]
       ? fullOriginalData[originalChannels[0]].length
       : 0;
     const visibleIndices = new Set(
       Array.from({ length: dataLength }, (_, i) => i)
     );
-
-    // 非表示にするmarkAreaの範囲をvisibleIndicesから削除
     originalMarkAreaData.forEach((area, index) => {
       if (!markAreaVisibility.get(`mark_area_${index}`)) {
         for (let i = area.range[0]; i <= area.range[1]; i++) {
@@ -604,8 +706,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const sortedVisibleIndices = Array.from(visibleIndices).sort(
       (a, b) => a - b
     );
-
-    // --- フィルタリングされたTimeデータと各CH_チャンネルのデータを再構築 ---
     let filteredTimeData = [];
     if (fullOriginalData["Time"]) {
       filteredTimeData = sortedVisibleIndices.map(
@@ -617,32 +717,25 @@ document.addEventListener("DOMContentLoaded", () => {
         (_, i) => i
       );
     }
-
     const filteredSeriesData = {};
     const visibleChannels = originalChannels.filter((channel) =>
       channelVisibility.get(channel)
     );
-
     visibleChannels.forEach((channel) => {
       const originalChannelData = fullOriginalData[channel];
       filteredSeriesData[channel] = sortedVisibleIndices.map(
         (idx) => originalChannelData[idx]
       );
     });
-
-    // --- markAreaデータを再構築し、新しいX軸インデックスにマッピング ---
     const filteredMarkAreas = [];
-    // マッピング用のヘルパー関数
     const originalIndexToFilteredIndex = new Map();
     sortedVisibleIndices.forEach((originalIdx, filteredIdx) => {
       originalIndexToFilteredIndex.set(originalIdx, filteredIdx);
     });
-
     originalMarkAreaData.forEach((area, index) => {
       if (markAreaVisibility.get(`mark_area_${index}`)) {
         const newStart = originalIndexToFilteredIndex.get(area.range[0]);
         const newEnd = originalIndexToFilteredIndex.get(area.range[1]);
-
         if (newStart !== undefined && newEnd !== undefined) {
           filteredMarkAreas.push([
             {
@@ -652,18 +745,14 @@ document.addEventListener("DOMContentLoaded", () => {
               label: {
                 show: false,
               },
-            }, // markAreaの名前をnameプロパティで追加
+            },
             { xAxis: newEnd },
           ]);
         }
       }
     });
-
-    // --- EChartsオプションの再構築 ---
     const totalVisibleChannels = visibleChannels.length;
     const containerHeightRatio = 95;
-
-    // 表示するチャンネルがない場合は、空のグラフを表示
     if (totalVisibleChannels === 0) {
       myChart.setOption(
         {
@@ -678,64 +767,51 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       return;
     }
-
     const newOption = {
       tooltip: {
         trigger: "axis",
         formatter: function (params) {
           let tooltipContent = "";
-          // タイムスタンプ（X軸の値）
           const timeValue = params[0].axisValue;
           tooltipContent += `Time: <b>${timeValue}</b><br/>`;
-
-          // MarkAreaの名前を追加
-          // 現在のデータポイントに対応するmarkAreaを検索
-          // EChartsのparamsにはmarkAreaの情報が直接含まれないため、手動で検索する
-          const currentXIndex = params[0].dataIndex; // 現在のX軸インデックス
-
+          const currentXIndex = params[0].dataIndex;
           const relevantMarkArea = originalMarkAreaData.find((area, index) => {
-            if (!markAreaVisibility.get(`mark_area_${index}`)) return false; // 非表示のmarkAreaは除外
+            if (!markAreaVisibility.get(`mark_area_${index}`)) return false;
             const originalStart = area.range[0];
             const originalEnd = area.range[1];
-
             const filteredStart =
               originalIndexToFilteredIndex.get(originalStart);
             const filteredEnd = originalIndexToFilteredIndex.get(originalEnd);
-
             return (
               currentXIndex >= filteredStart && currentXIndex <= filteredEnd
             );
           });
-
           if (relevantMarkArea) {
             tooltipContent += `MarkArea: <span style="font-weight: bold; color:${relevantMarkArea.color.replace(
               /, 0\.\d+\)/,
               ", 1)"
             )}">${relevantMarkArea.name}</span><br/>`;
           }
-
           params.forEach(function (item) {
             tooltipContent += `${item.marker} ${item.seriesName}: <b>${item.value}</b><br/>`;
           });
-
           return tooltipContent;
         },
       },
       grid: visibleChannels.map((_, index) => ({
         top: `${(index / totalVisibleChannels) * containerHeightRatio + 0.5}%`,
         height: "30px",
-        left: "100px",
+        left: "310px",
         right: "30px",
       })),
       xAxis: visibleChannels.map((_, index) => ({
         gridIndex: index,
         type: "category",
-        data: filteredTimeData, // フィルタリングされたTimeデータを使用
+        data: filteredTimeData,
         show: index === totalVisibleChannels - 1,
         axisLabel: {
           show: index === totalVisibleChannels - 1,
           formatter: function (value) {
-            // Timeデータの表示形式を調整 (必要に応じてカスタマイズ)
             return value;
           },
         },
@@ -757,8 +833,8 @@ document.addEventListener("DOMContentLoaded", () => {
           overflow: "truncate",
           width: 60,
         },
-        min: -4,
-        max: 4,
+        min: -2,
+        max: 2,
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: { show: false },
@@ -770,7 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
       series: visibleChannels.map((channel, index) => ({
         name: channel,
         type: "line",
-        data: filteredSeriesData[channel], // フィルタリングされたデータを使用
+        data: filteredSeriesData[channel],
         xAxisIndex: index,
         yAxisIndex: index,
         showSymbol: false,
@@ -778,7 +854,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sampling: "lttb",
         markArea: {
           silent: true,
-          data: filteredMarkAreas, // フィルタリングされたmarkAreaデータを使用
+          data: filteredMarkAreas,
         },
       })),
       dataZoom: [
@@ -794,10 +870,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       ],
     };
-
-    // グラフコンテナの高さを動的に調整
-    chartContainer.style.height = `${totalVisibleChannels * 30 + 100}px`; // 各チャンネルに30px割り当て
-
+    chartContainer.style.height = `${totalVisibleChannels * 32 + 100}px`;
     myChart.setOption(newOption, { notMerge: true });
     myChart.resize();
   }
@@ -811,6 +884,105 @@ document.addEventListener("DOMContentLoaded", () => {
     errorAlert.classList.add("d-none");
   }
 
+  window.addEventListener("resize", () => {
+    if (myChart) {
+      myChart.resize();
+    }
+  });
+});
+```
+
+static/js/graph.js
+
+```js
+document.addEventListener("DOMContentLoaded", () => {
+  const chartContainer = document.getElementById("chart-container");
+  let myChart = null;
+
+  // sessionStorageからデータを取得
+  const storedData = sessionStorage.getItem("graphDataForNewTab");
+
+  if (!storedData) {
+    chartContainer.innerHTML =
+      '<div class="alert alert-danger">グラフデータを読み込めませんでした。元のタブから再度グラフを作成してください。</div>';
+    return;
+  }
+
+  try {
+    const graphData = JSON.parse(storedData);
+    // データを読み込んだら不要なので削除
+    sessionStorage.removeItem("graphDataForNewTab");
+
+    // EChartsのインスタンスを初期化
+    myChart = echarts.init(chartContainer);
+
+    // seriesとlegendのデータを生成
+    const series = graphData.series.map((s) => ({
+      name: s.name,
+      type: "line",
+      data: s.data,
+      showSymbol: false,
+      sampling: "lttb", // データが多い場合に備えてサンプリングを有効化
+      lineStyle: {
+        width: 1.5,
+      },
+    }));
+
+    const legendData = graphData.series.map((s) => s.name);
+
+    // EChartsのオプションを設定
+    const option = {
+      tooltip: {
+        trigger: "axis",
+        position: function (pt) {
+          return [pt[0], "10%"];
+        },
+      },
+      legend: {
+        data: legendData,
+        top: 10,
+        type: "scroll", // 凡例が多い場合にスクロール可能にする
+      },
+      grid: {
+        left: "5%",
+        right: "5%",
+        top: "60px", // legendの高さに応じて調整
+        bottom: "80px", // dataZoomの高さに応じて調整
+      },
+      xAxis: {
+        type: "category",
+        data: graphData.time,
+        boundaryGap: false,
+      },
+      yAxis: {
+        type: "value",
+        boundaryGap: [0, "10%"],
+      },
+      dataZoom: [
+        {
+          type: "inside",
+          start: 0,
+          end: 100,
+        },
+        {
+          type: "slider",
+          start: 0,
+          end: 100,
+          bottom: 20,
+        },
+      ],
+      series: series,
+    };
+
+    // オプションを適用してグラフを描画
+    myChart.setOption(option);
+  } catch (e) {
+    console.error("Failed to parse graph data or render chart:", e);
+    chartContainer.innerHTML =
+      '<div class="alert alert-danger">グラフの描画中にエラーが発生しました。</div>';
+  }
+
+  // ウィンドウリサイズ時にグラフもリサイズ
   window.addEventListener("resize", () => {
     if (myChart) {
       myChart.resize();

@@ -9,17 +9,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const markAreaControls = document.getElementById("mark-area-controls");
   const channelCard = document.getElementById("channel-card");
   const channelControls = document.getElementById("channel-controls");
-  // --- ▼▼▼ ここからが追加点 ▼▼▼ ---
   const createGraphButton = document.getElementById("create-graph-button");
-  // --- ▲▲▲ 追加点はここまで ▲▲▲ ---
 
   let myChart = null;
-  let originalChannels = []; // オリジナルのCH_チャンネル名を保持
-  let fullOriginalData = {}; // Timeカラムを含む、APIから取得した全てのオリジナルデータを保持
-  let originalMarkAreaData = []; // APIから取得したオリジナルのmarkAreaDataを保持
+  let originalChannels = [];
+  let fullOriginalData = {};
+  let originalMarkAreaData = [];
+  // --- ▼▼▼ ここからが追加点 ▼▼▼ ---
+  let xAxisCandidates = []; // X軸候補のリストを保持する変数を追加
+  // --- ▲▲▲ 追加点はここまで ▲▲▲ ---
 
-  let markAreaVisibility = new Map(); // markAreaの表示/非表示状態を保持
-  let channelVisibility = new Map(); // 各チャンネルの表示/非表示状態を保持
+  let markAreaVisibility = new Map();
+  let channelVisibility = new Map();
 
   uploadButton.addEventListener("click", async () => {
     const file = csvFileInput.files[0];
@@ -62,10 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- ▼▼▼ ここからが追加点 ▼▼▼ ---
-  /**
-   * 「グラフを作成」ボタンの有効/無効を切り替える関数
-   */
   function toggleCreateGraphButton() {
     const selectedChannels = Array.from(channelVisibility.values()).filter(
       (v) => v
@@ -84,40 +81,35 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // グラフ作成に必要なデータを準備
+    // --- ▼▼▼ ここからが変更点 ▼▼▼ ---
+    // sessionStorageを使わずに、postMessageでデータを渡す方式に変更
+
     const graphData = {
-      time: fullOriginalData["Time"] || [],
-      series: [],
+      fullData: fullOriginalData,
+      selectedChannels: selectedChannels,
+      xAxisCandidates: xAxisCandidates,
     };
 
-    selectedChannels.forEach((channel) => {
-      graphData.series.push({
-        name: channel,
-        data: fullOriginalData[channel] || [],
-      });
-    });
+    // 新しいタブ（ウィンドウ）を開く
+    const newWindow = window.open("/graph", "_blank");
 
-    // sessionStorageにデータを保存して新しいタブを開く
-    // データが大きい場合、localStorageやsessionStorageには限界があるため注意
-    try {
-      sessionStorage.setItem("graphDataForNewTab", JSON.stringify(graphData));
-      window.open("/graph", "_blank");
-    } catch (e) {
-      console.error("Failed to save data to sessionStorage:", e);
+    if (newWindow) {
+      // 新しいタブがロード完了したら、postMessageでデータを送信する
+      newWindow.onload = () => {
+        // 第2引数で送信先のオリジンを限定し、セキュリティを確保する
+        newWindow.postMessage(graphData, window.location.origin);
+      };
+    } else {
+      // ポップアップがブロックされた場合のエラー表示
       showError(
-        "グラフ用データを一時保存できませんでした。データが大きすぎる可能性があります。"
+        "ポップアップがブロックされました。ブラウザの設定でポップアップを許可してから、再度お試しください。"
       );
     }
+    // --- ▲▲▲ 変更点はここまで ▲▲▲ ---
   });
-  // --- ▲▲▲ 追加点はここまで ▲▲▲ ---
 
   /**
    * EChartsでグラフを描画する関数
-   * @param {{
-   *   channels: string[],
-   *   data: {[key: string]: (number|string)[]},
-   *   markAreaData: {name: string, color: string, range: [number, number]}[]
-   * }} apiData
    */
   function renderChart(apiData) {
     chartContainer.style.display = "block";
@@ -131,6 +123,9 @@ document.addEventListener("DOMContentLoaded", () => {
     originalChannels = apiData.channels;
     fullOriginalData = apiData.data;
     originalMarkAreaData = apiData.markAreaData;
+    // --- ▼▼▼ ここからが追加点 ▼▼▼ ---
+    xAxisCandidates = apiData.xAxisCandidates; // レスポンスからX軸候補を取得
+    // --- ▲▲▲ 追加点はここまで ▲▲▲ ---
 
     markAreaVisibility.clear();
     originalMarkAreaData.forEach((_, index) => {
@@ -145,9 +140,11 @@ document.addEventListener("DOMContentLoaded", () => {
     generateMarkAreaControls(originalMarkAreaData, markAreaVisibility);
     generateChannelControls(originalChannels, channelVisibility);
     updateChart();
-    toggleCreateGraphButton(); // --- ◀◀◀ 変更点: ボタンの状態を初期化
+    toggleCreateGraphButton();
   }
 
+  // (generateMarkAreaControls, generateChannelControls, updateChart, showError, hideError, resizeイベントリスナーは変更ありません)
+  // ...
   function generateMarkAreaControls(markAreaData, markAreaVisibility) {
     markAreaControls.innerHTML = "";
 
@@ -227,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
       checkbox.addEventListener("change", (event) => {
         channelVisibility.set(channel, event.target.checked);
         updateChart();
-        toggleCreateGraphButton(); // --- ◀◀◀ 変更点: ボタンの状態を更新
+        toggleCreateGraphButton();
         event.target.blur();
       });
     });
@@ -238,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
       channelControls
         .querySelectorAll("input[type='checkbox']")
         .forEach((cb) => (cb.checked = true));
-      toggleCreateGraphButton(); // --- ◀◀◀ 変更点: ボタンの状態を更新
+      toggleCreateGraphButton();
     };
 
     document.getElementById("deselect-all-channels").onclick = () => {
@@ -247,12 +244,10 @@ document.addEventListener("DOMContentLoaded", () => {
       channelControls
         .querySelectorAll("input[type='checkbox']")
         .forEach((cb) => (cb.checked = false));
-      toggleCreateGraphButton(); // --- ◀◀◀ 変更点: ボタンの状態を更新
+      toggleCreateGraphButton();
     };
   }
-
   function updateChart() {
-    // (この関数の中身は変更ありません)
     if (
       !myChart ||
       !originalChannels ||
@@ -444,16 +439,13 @@ document.addEventListener("DOMContentLoaded", () => {
     myChart.setOption(newOption, { notMerge: true });
     myChart.resize();
   }
-
   function showError(message) {
     errorAlert.textContent = message;
     errorAlert.classList.remove("d-none");
   }
-
   function hideError() {
     errorAlert.classList.add("d-none");
   }
-
   window.addEventListener("resize", () => {
     if (myChart) {
       myChart.resize();
